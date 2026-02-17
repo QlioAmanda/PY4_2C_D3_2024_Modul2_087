@@ -7,7 +7,8 @@
 
 import 'package:flutter/material.dart';
 import 'login_controller.dart';
-import '../logbook/counter_view.dart'; // Sesuaikan path jika berbeda
+// PERBAIKAN 3: Hanya gunakan satu import dengan alias 'logbook' untuk menghindari konflik
+import '../logbook/counter_view.dart' as logbook;
 
 class LoginView extends StatefulWidget {
   const LoginView({super.key});
@@ -21,10 +22,7 @@ class _LoginViewState extends State<LoginView> {
   final TextEditingController _userController = TextEditingController();
   final TextEditingController _passController = TextEditingController();
   
-  // Key wajib untuk validasi form kosong
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  
-  // State untuk mata password
   bool _isObscure = true;
 
   @override
@@ -36,7 +34,6 @@ class _LoginViewState extends State<LoginView> {
   }
 
   void _handleLogin() {
-    // Cek apakah ada field yang kosong
     if (_formKey.currentState!.validate()) {
       String user = _userController.text;
       String pass = _passController.text;
@@ -47,11 +44,11 @@ class _LoginViewState extends State<LoginView> {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => CounterView(username: user),
+            // Memanggil CounterView melalui alias 'logbook'
+            builder: (context) => logbook.CounterView(username: user),
           ),
         );
       } else {
-        // Cek apakah gagal karena salah pass atau karena terblokir
         if (_controller.isLocked.value) {
            ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text("Akses terkunci sementara!"), backgroundColor: Colors.red),
@@ -69,11 +66,10 @@ class _LoginViewState extends State<LoginView> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text("Login Gatekeeper")),
-      // PERBAIKAN: Dibungkus Center dan SingleChildScrollView agar bisa di-scroll saat keyboard muncul
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
-          child: Form( // Bungkus dengan Form agar validator berfungsi
+          child: Form(
             key: _formKey,
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -100,7 +96,6 @@ class _LoginViewState extends State<LoginView> {
                 TextFormField(
                   controller: _passController,
                   obscureText: _isObscure,
-                  // TWIST 1: Membatasi ketikan maksimal 8 karakter agar UI rapi
                   maxLength: 8, 
                   decoration: InputDecoration(
                     labelText: "Password",
@@ -110,7 +105,7 @@ class _LoginViewState extends State<LoginView> {
                       icon: Icon(_isObscure ? Icons.visibility_off : Icons.visibility),
                       onPressed: () {
                         setState(() {
-                          _isObscure = !_isObscure; // Toggle mata
+                          _isObscure = !_isObscure;
                         });
                       },
                     ),
@@ -119,8 +114,6 @@ class _LoginViewState extends State<LoginView> {
                     if (value == null || value.isEmpty) {
                       return 'Password tidak boleh kosong!';
                     }
-                    // TWIST 2: Logika validasi minimal karakter
-                    // set minimal 3 karakter karena password "123" dan "087" panjangnya 3
                     if (value.length < 3) {
                       return 'Password terlalu pendek (minimal 3 karakter)!';
                     }
@@ -129,7 +122,6 @@ class _LoginViewState extends State<LoginView> {
                 ),
                 const SizedBox(height: 30),
                 
-                // Reactive Button menggunakan Listeners
                 ValueListenableBuilder<bool>(
                   valueListenable: _controller.isLocked,
                   builder: (context, isLocked, child) {
@@ -140,7 +132,6 @@ class _LoginViewState extends State<LoginView> {
                           width: double.infinity,
                           height: 50,
                           child: ElevatedButton(
-                            // Jika isLocked true, onPressed menjadi null (tombol disable otomatis)
                             onPressed: isLocked ? null : _handleLogin,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.indigo,
