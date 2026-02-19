@@ -1,63 +1,44 @@
-// Nama : Qlio Amanda Febriany
-// Nim : 241511087
-// Kelas : 2C
-// Catatan: Struktur UI menggunakan widget Form dan validasinya dioptimalkan 
-// dengan bantuan AI, lalu diintegrasikan dengan ValueListenableBuilder 
-// untuk mendengarkan lock state dari Controller.
-
+// Nama : Qlio Amanda Febriany | Nim : 241511087 | Kelas : 2C
 import 'package:flutter/material.dart';
 import 'login_controller.dart';
-// PERBAIKAN 3: Hanya gunakan satu import dengan alias 'logbook' untuk menghindari konflik
 import '../logbook/counter_view.dart' as logbook;
 
 class LoginView extends StatefulWidget {
   const LoginView({super.key});
-
   @override
   State<LoginView> createState() => _LoginViewState();
 }
 
 class _LoginViewState extends State<LoginView> {
-  final LoginController _controller = LoginController();
-  final TextEditingController _userController = TextEditingController();
-  final TextEditingController _passController = TextEditingController();
-  
+  final LoginController _c = LoginController();
+  final TextEditingController _userC = TextEditingController();
+  final TextEditingController _passC = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   bool _isObscure = true;
 
+  // PALET WARNA VINTAGE
+  final Color _bgCream = const Color(0xFFFDF5E6);
+  final Color _brownPrimary = const Color(0xFF6D4C41);
+  final Color _brownText = const Color(0xFF3E2723);
+
   @override
   void dispose() {
-    _userController.dispose();
-    _passController.dispose();
-    _controller.dispose();
+    _userC.dispose(); _passC.dispose(); _c.dispose();
     super.dispose();
   }
 
   void _handleLogin() {
     if (_formKey.currentState!.validate()) {
-      String user = _userController.text;
-      String pass = _passController.text;
-
-      bool isSuccess = _controller.login(user, pass);
-
-      if (isSuccess) {
+      if (_c.login(_userC.text, _passC.text)) {
         Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            // Memanggil CounterView melalui alias 'logbook'
-            builder: (context) => logbook.CounterView(username: user),
-          ),
+          context, MaterialPageRoute(builder: (_) => logbook.CounterView(username: _userC.text)),
         );
       } else {
-        if (_controller.isLocked.value) {
-           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Akses terkunci sementara!"), backgroundColor: Colors.red),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Username atau Password tidak valid!"), backgroundColor: Colors.orange),
-          );
-        }
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(_c.isLocked.value ? "Akses terkunci!" : "Akun tidak valid!", 
+            style: const TextStyle(color: Colors.white)),
+          backgroundColor: _c.isLocked.value ? const Color(0xFFC62828) : const Color(0xFFA1887F),
+        ));
       }
     }
   }
@@ -65,94 +46,74 @@ class _LoginViewState extends State<LoginView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Login Gatekeeper")),
+      backgroundColor: _bgCream,
+      appBar: AppBar(
+        title: Text("Gatekeeper LogBook", 
+          style: TextStyle(color: _brownText, fontWeight: FontWeight.bold, fontFamily: 'serif')),
+        backgroundColor: Colors.transparent, elevation: 0, centerTitle: true,
+      ),
       body: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
+          padding: const EdgeInsets.all(30.0),
           child: Form(
             key: _formKey,
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.security, size: 80, color: Colors.indigo),
+                Icon(Icons.menu_book_rounded, size: 90, color: _brownPrimary),
                 const SizedBox(height: 30),
+                _buildTextField(_userC, "Username", Icons.person),
+                const SizedBox(height: 15),
+                _buildTextField(_passC, "Password", Icons.lock, isPass: true),
+                const SizedBox(height: 25),
                 
-                TextFormField(
-                  controller: _userController,
-                  decoration: const InputDecoration(
-                    labelText: "Username",
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.person),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Username tidak boleh kosong!';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-                
-                TextFormField(
-                  controller: _passController,
-                  obscureText: _isObscure,
-                  maxLength: 8, 
-                  decoration: InputDecoration(
-                    labelText: "Password",
-                    border: const OutlineInputBorder(),
-                    prefixIcon: const Icon(Icons.lock),
-                    suffixIcon: IconButton(
-                      icon: Icon(_isObscure ? Icons.visibility_off : Icons.visibility),
-                      onPressed: () {
-                        setState(() {
-                          _isObscure = !_isObscure;
-                        });
-                      },
+                // REVISI LINT: Menghapus underscore ganda & withOpacity
+                ValueListenableBuilder<bool>(
+                  valueListenable: _c.isLocked,
+                  builder: (ctxLock, isLocked, childLock) => ValueListenableBuilder<int>(
+                    valueListenable: _c.remainingTime,
+                    builder: (ctxTime, timeLeft, childTime) => SizedBox(
+                      width: double.infinity, height: 50,
+                      child: ElevatedButton(
+                        onPressed: isLocked ? null : _handleLogin,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _brownPrimary, foregroundColor: _bgCream,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                          elevation: 5, shadowColor: _brownText.withValues(alpha: 0.3), // FIX OPACITY
+                        ),
+                        child: Text(isLocked ? "Terkunci ($timeLeft s)" : "Buka LogBook", 
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, fontFamily: 'serif')),
+                      ),
                     ),
                   ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Password tidak boleh kosong!';
-                    }
-                    if (value.length < 3) {
-                      return 'Password terlalu pendek (minimal 3 karakter)!';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 30),
-                
-                ValueListenableBuilder<bool>(
-                  valueListenable: _controller.isLocked,
-                  builder: (context, isLocked, child) {
-                    return ValueListenableBuilder<int>(
-                      valueListenable: _controller.remainingTime,
-                      builder: (context, timeLeft, child) {
-                        return SizedBox(
-                          width: double.infinity,
-                          height: 50,
-                          child: ElevatedButton(
-                            onPressed: isLocked ? null : _handleLogin,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.indigo,
-                              foregroundColor: Colors.white,
-                            ),
-                            child: Text(
-                              isLocked 
-                                ? "Terkunci ($timeLeft detik)" 
-                                : "Masuk"
-                            ),
-                          ),
-                        );
-                      }
-                    );
-                  },
                 ),
               ],
             ),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildTextField(TextEditingController controller, String label, IconData icon, {bool isPass = false}) {
+    return TextFormField(
+      controller: controller, obscureText: isPass ? _isObscure : false, maxLength: isPass ? 8 : null,
+      style: TextStyle(color: _brownText, fontFamily: 'serif'),
+      decoration: InputDecoration(
+        labelText: label, labelStyle: TextStyle(color: _brownPrimary),
+        prefixIcon: Icon(icon, color: _brownPrimary),
+        filled: true, fillColor: const Color(0xFFFFF8E1),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide(color: _brownPrimary)),
+        // FIX OPACITY DI BAWAH INI
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(15), borderSide: BorderSide(color: _brownPrimary.withValues(alpha: 0.5))),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide(color: _brownPrimary, width: 2)),
+        suffixIcon: isPass ? IconButton(
+          icon: Icon(_isObscure ? Icons.visibility_off : Icons.visibility, color: _brownPrimary),
+          onPressed: () => setState(() => _isObscure = !_isObscure),
+        ) : null,
+      ),
+      validator: (v) => isPass ? (v!.length < 3 ? 'Minimal 3 karakter!' : null) : (v!.isEmpty ? 'Wajib diisi!' : null),
     );
   }
 }
